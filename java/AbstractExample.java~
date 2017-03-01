@@ -1,0 +1,38 @@
+/* abstrat classes contain abstract method */
+abstract class Point {
+    int x, y;
+    
+    void move(int dx, int dy) {
+        x += dx;
+        y += dy;
+    }
+    
+    abstract void alert();
+}
+
+// this class has no abstract methods but extends an abstract class and do not
+// implements the abstract method, so it is abstract
+abstract class ColorPoint extends Point {
+    int color;
+}
+
+// here the abstract method alert() is implemented
+class SimplePoint extends ColorPoint {
+    void SimplePoint(x, y) {
+        this.x = x;
+        this.y = y
+    }
+    void alert() {
+        System.out.println("This is an alert");
+        show()
+    }
+    
+    public void show () {
+        System.out.println(this.x, this.y)
+    }
+}
+
+public class AbstractExample {
+    SimplePoint p = new SimplePoint(3, 4)
+        p.show()
+}
