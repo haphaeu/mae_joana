@@ -34,10 +34,10 @@ class SimplePoint extends ColorPoint {
     }
     void alert() {
         System.out.println("This is an alert");
-        showPoint();
     }
     
     public void showPoint () {
         System.out.println("" + this.x + ", " + this.y);
+        alert();
     }
 }
