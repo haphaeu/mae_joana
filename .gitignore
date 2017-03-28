@@ -5,6 +5,7 @@ __pycache__/
 *.exe
 *.class
 *.java~
+*.ser
 
 *.gz
 
