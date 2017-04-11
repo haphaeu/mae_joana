@@ -19,16 +19,23 @@ import javax.swing.BorderFactory;
 
 
 public class Catenary {
+	public static final String version = "v0.1beta";
 	private JFrame frame;
 	private JPanel background;
 	private DrawPanel drawPanel;
 	private final int TEXT_FIELD_COLUMNS = 5;
+	private JTextField tText;
+	private JTextField vText;
+	private JTextField hText;
+	private JTextField lText;
+	private JTextField mText;
+	private CatenaryParameters cat;
 	
 	public static void main(String[] args) {
 		new Catenary().start();
 	}
 	void start() {
-		frame = new JFrame("Catenary");
+		frame = new JFrame("Catenary - " + version);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		GridLayout grid = new GridLayout(6, 2);
@@ -37,28 +44,28 @@ public class Catenary {
 		JPanel textBoxes = new JPanel(grid);
 		textBoxes.setAlignmentX(JPanel.LEFT_ALIGNMENT);
 
-		JLabel hLabel = new JLabel(String.format("%30s", "Horizontal distance H [m]:"), SwingConstants.LEFT);
-		JTextField hText = new JTextField(TEXT_FIELD_COLUMNS);
-		textBoxes.add(hLabel);
-		textBoxes.add(hText);
-
-		JLabel vLabel = new JLabel(String.format("%30s", "Vertical distance V [m]:"), SwingConstants.LEFT);
-		JTextField vText = new JTextField(TEXT_FIELD_COLUMNS);
-		textBoxes.add(vLabel);
-		textBoxes.add(vText);
-
 		JLabel tLabel = new JLabel(String.format("%30s", "Top angle TA [deg]:"), SwingConstants.LEFT);
-		JTextField tText = new JTextField(TEXT_FIELD_COLUMNS);
+		tText = new JTextField(TEXT_FIELD_COLUMNS);
 		textBoxes.add(tLabel);
 		textBoxes.add(tText);
 
+		JLabel vLabel = new JLabel(String.format("%30s", "Vertical distance V [m]:"), SwingConstants.LEFT);
+		vText = new JTextField(TEXT_FIELD_COLUMNS);
+		textBoxes.add(vLabel);
+		textBoxes.add(vText);
+		
+		JLabel hLabel = new JLabel(String.format("%30s", "Horizontal distance H [m]:"), SwingConstants.LEFT);
+		hText = new JTextField(TEXT_FIELD_COLUMNS);
+		textBoxes.add(hLabel);
+		textBoxes.add(hText);
+
 		JLabel lLabel = new JLabel(String.format("%30s", "Length [m]:"), SwingConstants.LEFT);
-		JTextField lText = new JTextField(TEXT_FIELD_COLUMNS);
+		lText = new JTextField(TEXT_FIELD_COLUMNS);
 		textBoxes.add(lLabel);
 		textBoxes.add(lText);
 		
 		JLabel mLabel = new JLabel(String.format("%30s", "MBR [m]:"), SwingConstants.LEFT);
-		JTextField mText = new JTextField(TEXT_FIELD_COLUMNS);
+		mText = new JTextField(TEXT_FIELD_COLUMNS);
 		textBoxes.add(mLabel);
 		textBoxes.add(mText);
 		
@@ -84,11 +91,35 @@ public class Catenary {
 		frame.setVisible(true);
 	}
 	
+	void getParams() {
+		// SOLUCAO TEMPORARIA
+		// AQUI PRECISA CHECAR QUAIS PARAMETROS FORAM ENTRADOS
+		// E CHAMAR A FUNCAO CERTA...
+		// TEMP:
+		double ta, vd, hd, l, mbr;
+		try { ta  = Double.parseDouble(tText.getText()); } catch (Exception ex) { ta  = 0; }
+		try { vd  = Double.parseDouble(vText.getText()); } catch (Exception ex) { vd  = 0; }
+		try { hd  = Double.parseDouble(hText.getText()); } catch (Exception ex) { hd  = 0; }
+		try { l   = Double.parseDouble(lText.getText()); } catch (Exception ex) { l   = 0; }
+		try { mbr = Double.parseDouble(mText.getText()); } catch (Exception ex) { mbr = 0; }
+
+		cat = CatenaryLib.CatenaryCalcTAV(ta, vd);
+	}
+	void setParams() {
+		double[] params = cat.getParameters();
+		tText.setText(String.valueOf(params[0]));
+		vText.setText(String.valueOf(params[1]));
+		hText.setText(String.valueOf(params[2]));
+		lText.setText(String.valueOf(params[3]));
+		mText.setText(String.valueOf(params[4]));
+	}
 	/**
 	* Listeners for the Calculate and Clear buttons
 	*/
 	class CalculateListener implements ActionListener {
 		public void actionPerformed(ActionEvent ev) {
+			getParams();
+			setParams();
 			//calculate();
 			drawPanel.setIsDrawingReady(true);
 			drawPanel.calcPoints();
