@@ -17,9 +17,10 @@ import javax.swing.JButton;
 import javax.swing.SwingConstants;
 import javax.swing.BorderFactory;
 
+import static java.lang.Math.cosh;
 
 public class Catenary {
-	public static final String version = "v0.1beta";
+	public static final String version = "v0.2";
 	private JFrame frame;
 	private JPanel background;
 	private DrawPanel drawPanel;
@@ -30,6 +31,8 @@ public class Catenary {
 	private JTextField lText;
 	private JTextField mText;
 	private CatenaryParameters cat;
+	private double[] normalisedPointsX;
+	private double[] normalisedPointsY;
 	
 	public static void main(String[] args) {
 		new Catenary().start();
@@ -92,27 +95,77 @@ public class Catenary {
 	}
 	
 	void getParams() {
-		// SOLUCAO TEMPORARIA
-		// AQUI PRECISA CHECAR QUAIS PARAMETROS FORAM ENTRADOS
-		// E CHAMAR A FUNCAO CERTA...
-		// TEMP:
 		double ta, vd, hd, l, mbr;
 		try { ta  = Double.parseDouble(tText.getText()); } catch (Exception ex) { ta  = 0; }
 		try { vd  = Double.parseDouble(vText.getText()); } catch (Exception ex) { vd  = 0; }
 		try { hd  = Double.parseDouble(hText.getText()); } catch (Exception ex) { hd  = 0; }
 		try { l   = Double.parseDouble(lText.getText()); } catch (Exception ex) { l   = 0; }
 		try { mbr = Double.parseDouble(mText.getText()); } catch (Exception ex) { mbr = 0; }
-
-		cat = CatenaryLib.CatenaryCalcTAV(ta, vd);
+		
+		if      (ta > 0 && vd  > 0) { cat = CatenaryLib.CatenaryCalcTAV(ta, vd); }
+		else if (ta > 0 && hd  > 0) { cat = CatenaryLib.CatenaryCalcTAH(ta, hd); }
+		else if (ta > 0 && l   > 0) { cat = CatenaryLib.CatenaryCalcTAL(ta, l); }
+		else if (ta > 0 && mbr > 0) { cat = CatenaryLib.CatenaryCalcTAMBR(ta, mbr); }
+		else if (vd > 0 && hd  > 0) { cat = CatenaryLib.CatenarySolveV_HLMBR(vd, hd, "h");}
+		else if (vd > 0 && l   > 0) { cat = CatenaryLib.CatenarySolveV_HLMBR(vd, l, "l");}
+		else if (vd > 0 && mbr > 0) { cat = CatenaryLib.CatenarySolveV_HLMBR(vd, mbr, "mbr");}
+		else if (hd > 0 && l   > 0) { cat = CatenaryLib.CatenarySolveH_LMBR(hd, l, "l"); }
+		else if (hd > 0 && mbr > 0) { cat = CatenaryLib.CatenarySolveH_LMBR(hd, mbr, "mbr"); }
+		else if (l  > 0 && mbr > 0) { cat = CatenaryLib.CatenarySolveL_MBR(l, mbr); }
+		else { cat = null; }
 	}
 	void setParams() {
-		double[] params = cat.getParameters();
-		tText.setText(String.valueOf(params[0]));
-		vText.setText(String.valueOf(params[1]));
-		hText.setText(String.valueOf(params[2]));
-		lText.setText(String.valueOf(params[3]));
-		mText.setText(String.valueOf(params[4]));
+		if (cat != null) {
+			double[] params = cat.getParameters();
+			tText.setText(String.valueOf(params[0]));
+			vText.setText(String.valueOf(params[1]));
+			hText.setText(String.valueOf(params[2]));
+			lText.setText(String.valueOf(params[3]));
+			mText.setText(String.valueOf(params[4]));
+		} else {
+			tText.setText("");
+			vText.setText("");
+			hText.setText("");
+			lText.setText("");
+			mText.setText("");
+		}
 	}
+	
+	void calculateNormalisedPoints() {
+	//Calculate the catenary points in the input coordinates"""
+
+		int numPts = drawPanel.getNumPts();
+		
+		double[] params = cat.getParameters();
+		double ta = params[0];  // not used
+		double vd = params[1];  
+		double hd = params[2];
+		double l = params[3];   // not used
+		double mbr = params[4]; 
+		
+		double Xmin = 0.0;
+		double Xmax = hd;
+		double xstep = (Xmax - Xmin) / (numPts - 1.0);
+		double[] X = new double[numPts];
+		double[] Y = new double[numPts]; 
+		normalisedPointsX = new double[numPts];
+		normalisedPointsY = new double[numPts];
+		double Ymin = mbr;
+		double Ymax = mbr + vd;
+		double rangeX = Xmax - Xmin;
+		double rangeY = Ymax - Ymin;
+
+		for (int i=0; i < numPts; i++) {
+			// points in catenary scale
+			X[i] = Xmin + i * xstep;
+			Y[i] = mbr * cosh(X[i] / mbr);
+			// normalised points, from 0 to 1
+			// these will be resized to draw in canvas
+			normalisedPointsX[i] = (X[i] - Xmin) / rangeX;
+			normalisedPointsY[i] = -(Y[i] - Ymax) / rangeY;
+		}
+	}
+	
 	/**
 	* Listeners for the Calculate and Clear buttons
 	*/
@@ -120,6 +173,7 @@ public class Catenary {
 		public void actionPerformed(ActionEvent ev) {
 			getParams();
 			setParams();
+			calculateNormalisedPoints();
 			//calculate();
 			drawPanel.setIsDrawingReady(true);
 			drawPanel.calcPoints();
@@ -150,15 +204,65 @@ public class Catenary {
 		public void setIsDrawingReady(boolean b) {
 			isDrawingReady = b;
 		}
+		public int getNumPts() {
+			return NUM_PTS;
+		}
 		void calcPoints() {
+			// """Calculate the points to be drawn in the canvas
+            //The aspect ratio of the real catenary is preserved
 			System.out.println("recalculating pixels");
-			float stepX = (float) this.getWidth() / NUM_PTS;
-			float stepY = (float) this.getHeight() / NUM_PTS;
+			int w = this.getWidth();
+			int h = this.getHeight();
+			
+			double[] params = cat.getParameters();
+			double ta = params[0];  // not used
+			double vd = params[1];  
+			double hd = params[2];
+			double l = params[3];   // not used
+			double mbr = params[4]; // not used
+			
+			// Calculate aspect ratio of the Catenary and the Canvas
+			float CatenaryAspectRatio = (float) (hd / vd);
+			float CanvasAspectRatio = (float) w / h;
+			
+			// Calculate the multiplication and shift to be applied to the points
+			// so that the fit the canvas keeping the original catenary aspect ratio
+			float Xfactor;
+			float Yfactor;
+			float Xshift;
+			float Yshift;
+			if (CatenaryAspectRatio > CanvasAspectRatio) {
+				Xfactor = 1.0f;
+				Xshift = 0.0f;
+				Yfactor = CanvasAspectRatio / CatenaryAspectRatio;
+				Yshift = 0.0f;
+			} else if (CatenaryAspectRatio < CanvasAspectRatio) {
+				Xfactor = CatenaryAspectRatio / CanvasAspectRatio;
+				Xshift = 0.0f;
+				Yfactor = 1.0f;
+				Yshift = 0.0f;
+			} else {
+				Xfactor = 1.0f;
+				Xshift = 0.0f;
+				Yfactor = 1.0f;
+				Yshift = 0.0f;
+			}
+
+			System.out.println("Canvas w x h: " + w + ", " + h);
+			System.out.println("Canvas aspect ratio: " + CanvasAspectRatio);
+			System.out.println("Catenary aspect ratio: " + CatenaryAspectRatio);
+			System.out.println("X and Y factors: " + Xfactor + ", " + Yfactor);
+			System.out.println("X and Y shifts: " + Xshift + ", " + Yshift);
+			// and finally, calculates the points to be drawn in the canvas
+			// by multipling the normalized points to the factors and shifts
+			// allocate memory for the points to plot
 			for (int i=0; i < NUM_PTS; i++) {
-				ptsX[i] = (int) stepX*i;
-				ptsY[i] = (int) stepY*i;
+				//System.out.println("norm points X and Y: " + normalisedPointsX[i] + ", " + normalisedPointsY[i]);
+				ptsX[i] = (int) (normalisedPointsX[i] * w * Xfactor + Xshift);
+				ptsY[i] = (int) (normalisedPointsY[i] * h * Yfactor + Yshift);
 			}
 		}
+		
 		public void paintComponent(Graphics gfx) {
 			System.out.println("redrawing canvas");
 			int w = this.getWidth();
