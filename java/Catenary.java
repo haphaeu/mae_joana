@@ -106,11 +106,11 @@ public class Catenary {
 		else if (ta > 0 && hd  > 0) { cat = CatenaryLib.CatenaryCalcTAH(ta, hd); }
 		else if (ta > 0 && l   > 0) { cat = CatenaryLib.CatenaryCalcTAL(ta, l); }
 		else if (ta > 0 && mbr > 0) { cat = CatenaryLib.CatenaryCalcTAMBR(ta, mbr); }
-		else if (vd > 0 && hd  > 0) { cat = CatenaryLib.CatenarySolveV_HLMBR(vd, hd, "h");}
-		else if (vd > 0 && l   > 0) { cat = CatenaryLib.CatenarySolveV_HLMBR(vd, l, "l");}
-		else if (vd > 0 && mbr > 0) { cat = CatenaryLib.CatenarySolveV_HLMBR(vd, mbr, "mbr");}
-		else if (hd > 0 && l   > 0) { cat = CatenaryLib.CatenarySolveH_LMBR(hd, l, "l"); }
-		else if (hd > 0 && mbr > 0) { cat = CatenaryLib.CatenarySolveH_LMBR(hd, mbr, "mbr"); }
+		else if (vd > 0 && hd  > 0) { cat = CatenaryLib.CatenarySolveV_HLMBR(vd, hd, "H");}
+		else if (vd > 0 && l   > 0) { cat = CatenaryLib.CatenarySolveV_HLMBR(vd, l, "L");}
+		else if (vd > 0 && mbr > 0) { cat = CatenaryLib.CatenarySolveV_HLMBR(vd, mbr, "MBR");}
+		else if (hd > 0 && l   > 0) { cat = CatenaryLib.CatenarySolveH_LMBR(hd, l, "L"); }
+		else if (hd > 0 && mbr > 0) { cat = CatenaryLib.CatenarySolveH_LMBR(hd, mbr, "MBR"); }
 		else if (l  > 0 && mbr > 0) { cat = CatenaryLib.CatenarySolveL_MBR(l, mbr); }
 		else { cat = null; }
 	}
@@ -173,16 +173,21 @@ public class Catenary {
 		public void actionPerformed(ActionEvent ev) {
 			getParams();
 			setParams();
-			calculateNormalisedPoints();
-			//calculate();
-			drawPanel.setIsDrawingReady(true);
-			drawPanel.calcPoints();
-			drawPanel.repaint();
+			if (cat != null) {
+				calculateNormalisedPoints();
+				drawPanel.setIsDrawingReady(true);
+				drawPanel.calcPoints();
+				drawPanel.repaint();
+			}
 		}
 	}
 	class ClearListener implements ActionListener {
 		public void actionPerformed(ActionEvent ev) {
-			//clear();
+			tText.setText("");
+			vText.setText("");
+			hText.setText("");
+			lText.setText("");
+			mText.setText("");
 			drawPanel.setIsDrawingReady(false);
 			drawPanel.repaint();
 		}
@@ -235,10 +240,10 @@ public class Catenary {
 				Xfactor = 1.0f;
 				Xshift = 0.0f;
 				Yfactor = CanvasAspectRatio / CatenaryAspectRatio;
-				Yshift = 0.0f;
+				Yshift = (1.0f - Yfactor) * (float) h / 2.0f;
 			} else if (CatenaryAspectRatio < CanvasAspectRatio) {
 				Xfactor = CatenaryAspectRatio / CanvasAspectRatio;
-				Xshift = 0.0f;
+				Xshift = (1.0f - Xfactor) * (float) w / 2.0f;
 				Yfactor = 1.0f;
 				Yshift = 0.0f;
 			} else {

@@ -104,7 +104,7 @@ class CatenaryLib {
 		//CatenarySolveL_MBR(L, MBR) -> TA, V, H, L, MBR
 		double TAi = 0.0;
 		double delta = 1.0;
-		double tolerance = 0.0000001;
+		double tolerance = 0.00000000001; // esta tolerance precia ser muito menor
 		TAi = TAi + delta;
 		CatenaryParameters retval = CatenaryCalcTAL(TAi, L);
 		double erro = retval.getParameters()[4] - MBR;
@@ -137,9 +137,9 @@ class CatenaryLib {
 		double tolerance = 0.0000001;
 		TAi += delta;
 		int idx;
-		if (flag.toUpperCase() == "L") {
+		if (flag.toUpperCase().equals("L")) {
 			idx = 3;
-		} else if (flag.toUpperCase() == "MBR") {
+		} else if (flag.toUpperCase().equals("MBR")) {
 			idx = 4;
 		} else {
 			System.out.println("Erro no flag da chamada de CatenarySolveH_LMBR.");
@@ -179,11 +179,11 @@ class CatenaryLib {
 		double tolerance = 0.0000001;
 		TAi += delta;
 		int idx;
-		if (flag.toUpperCase() == "H") {
+		if (flag.toUpperCase().equals("H")) {
 			idx = 2;
-		} else if (flag.toUpperCase() == "L") {
+		} else if (flag.toUpperCase().equals("L")) {
 			idx = 3;
-		} else if (flag.toUpperCase() == "MBR") {
+		} else if (flag.toUpperCase().equals("MBR")) {
 			idx = 4;
 		} else {
 			System.out.println("Erro no flag da chamada de CatenarySolveH_LMBR.");
