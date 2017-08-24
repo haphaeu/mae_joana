@@ -1,4 +1,5 @@
 import static java.lang.System.out;
+
 class StaticSuper {
 	static {
 		out.println("super static block");
@@ -7,6 +8,7 @@ class StaticSuper {
 		out.println("super constructor");
 	}
 }
+
 class StaticSub extends StaticSuper {
 	static int rand;
 	static {
@@ -17,6 +19,7 @@ class StaticSub extends StaticSuper {
 		out.println("sub constructor");
 	}
 }
+
 public class StaticTests {
 	static int rand;
 	static {
@@ -31,3 +34,12 @@ public class StaticTests {
 		StaticSub t = new StaticSub();
 	}
 }
+
+/* output:
+static block 2
+main
+super static block
+sub static block 4
+super constructor
+sub constructor
+*/

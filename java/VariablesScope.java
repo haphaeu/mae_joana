@@ -22,6 +22,8 @@ public class VariablesScope
 {
     public static void main (String[] args)
     {
+		System.out.println("TestScope.b = " + TestScope.b);
+		
         TestScope ca = new TestScope(8);
         TestScope cb = new TestScope(9);
         ca.a = 2;
@@ -34,6 +36,7 @@ public class VariablesScope
         System.out.println("cb.b = " + cb.b);
         System.out.println("ca.d = " + ca.d);
         System.out.println("cb.d = " + cb.d);
+		System.out.println("TestScope.b = " + TestScope.b);
         
     }
 }
