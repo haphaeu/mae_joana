@@ -108,11 +108,15 @@ public class RiskCalculator {
 
 		JLabel eventDurationLabel = new JLabel(String.format("%30s", "Event duration [h]:"), SwingConstants.LEFT);
 		eventDurationText = new JTextField(TEXT_FIELD_COLUMNS);
+		eventDurationText.setToolTipText("Tipical sea state is 3h.");
+		eventDurationLabel.setToolTipText(eventDurationText.getToolTipText());
 		textBoxes.add(eventDurationLabel);
 		textBoxes.add(eventDurationText);
 
 		JLabel eventRetPeriodLabel = new JLabel(String.format("%30s", "Event return period:"), SwingConstants.LEFT);
 		eventRetPeriodText = new JTextField(TEXT_FIELD_COLUMNS);
+		eventRetPeriodText.setToolTipText("Return period of the design load. Choose unit using options below.");
+		eventRetPeriodLabel.setToolTipText(eventRetPeriodText.getToolTipText());
 		textBoxes.add(eventRetPeriodLabel);
 		textBoxes.add(eventRetPeriodText);
 		
@@ -132,16 +136,23 @@ public class RiskCalculator {
 		
 		JLabel ProbNonExcLabel = new JLabel(String.format("%30s", "Probability non exceedence:"), SwingConstants.LEFT);
 		ProbNonExcText = new JTextField(TEXT_FIELD_COLUMNS);
+		ProbNonExcText.setToolTipText("For the design load. Leave blank if return period is given.");
+		ProbNonExcLabel.setToolTipText(ProbNonExcText.getToolTipText());
 		textBoxes.add(ProbNonExcLabel);
 		textBoxes.add(ProbNonExcText);
 
 		JLabel OperDurationLabel = new JLabel(String.format("%30s", "Operation duration [h]:"), SwingConstants.LEFT);
 		OperDurationText = new JTextField(TEXT_FIELD_COLUMNS);
+		OperDurationText.setToolTipText("Design life - planned duration of the exposure to loading.");
+		OperDurationLabel.setToolTipText(OperDurationText.getToolTipText());
 		textBoxes.add(OperDurationLabel);
 		textBoxes.add(OperDurationText);
 		
 		JLabel riskLabel = new JLabel(String.format("%30s", "Risk:"), SwingConstants.LEFT);
 		riskText = new JTextField(TEXT_FIELD_COLUMNS);
+		riskText.setEditable(false);
+		riskText.setToolTipText("Probability that 1 event exceeding design load occurs during design life.");
+		riskLabel.setToolTipText(riskText.getToolTipText());
 		textBoxes.add(riskLabel);
 		textBoxes.add(riskText);
 		
@@ -168,10 +179,10 @@ public class RiskCalculator {
 	void getParams() {
 		double eT, eR, pn, oT, r, eR_multi;
 		
-		try { eT = Double.parseDouble(eventDurationText.getText()); } catch (Exception ex) { eT  = 0; }
+		try { eT = Double.parseDouble(eventDurationText.getText());  } catch (Exception ex) { eT  = 0; }
 		try { eR = Double.parseDouble(eventRetPeriodText.getText()); } catch (Exception ex) { eR  = 0; }
-		try { pn = Double.parseDouble(ProbNonExcText.getText()); } catch (Exception ex) { pn  = 0; }
-		try { oT = Double.parseDouble(OperDurationText.getText()); } catch (Exception ex) { oT   = 0; }
+		try { pn = Double.parseDouble(ProbNonExcText.getText());     } catch (Exception ex) { pn  = 0; }
+		try { oT = Double.parseDouble(OperDurationText.getText());   } catch (Exception ex) { oT  = 0; }
 		
 		// converting return period to hours
 		if      (hours.isSelected())  { eR_multi = 1.0;          }  
@@ -187,7 +198,7 @@ public class RiskCalculator {
 		if      (eR > 0) { pn = 1.0 - eT/(eR * eR_multi); }
 		else if (pn > 0) { eR = eT / (1 - pn) / eR_multi; }
 		else {
-			System.out.println("Error in getParams(): either eR or pn must be set.");
+			System.out.println("Error: either return period or probability must be set.");
 			ready = false;
 			return;
 		}
@@ -206,11 +217,11 @@ public class RiskCalculator {
 
 	void setParams() {
 		if (ready) {
-			eventDurationText.setText(String.format(Locale.ROOT, "%.3f", eventDuration));
-			eventRetPeriodText.setText(String.format(Locale.ROOT, "%.3f",eventReturnPeriod));
-			ProbNonExcText.setText(String.format(Locale.ROOT, "%.5e", probabilityNonExceed));
-			OperDurationText.setText(String.format(Locale.ROOT, "%.3f",operationDuration));
-			riskText.setText(String.format(Locale.ROOT, "%.3e", risk));
+			eventDurationText.setText(String.format(Locale.ROOT, "%f", eventDuration));
+			eventRetPeriodText.setText(String.format(Locale.ROOT, "%f",eventReturnPeriod));
+			ProbNonExcText.setText(String.format(Locale.ROOT, "%f", probabilityNonExceed));
+			OperDurationText.setText(String.format(Locale.ROOT, "%f",operationDuration));
+			riskText.setText(String.format(Locale.ROOT, "%f", risk));
 		} else {
 			eventDurationText.setText("");
 			eventRetPeriodText.setText("");
