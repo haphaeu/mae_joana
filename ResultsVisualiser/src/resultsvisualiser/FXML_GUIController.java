@@ -21,6 +21,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.Clipboard;
@@ -53,6 +54,7 @@ public class FXML_GUIController implements Initializable {
     @FXML private ListView<String> listHeading;
     @FXML private Button btnOpen;
     @FXML private Button btnCopy;
+    @FXML private RadioButton radioLogLog, radioCDF, radioMin, radioMax;
 
     ObservableList<String> selectedHs;
     ObservableList<String> selectedTp;
@@ -150,11 +152,9 @@ public class FXML_GUIController implements Initializable {
         if (!readyToPlot) {
             return;
         }
-        // sketch
-        // only 1 selected item
         String var = comboBox.getSelectionModel().getSelectedItem();
         
-        double hs, tp, wd, min, max, range;
+        double hs, tp, wd, min, max, range, y;
         double[] data = null;
         XYChart.Series series;
         min = 99999.9;
@@ -175,11 +175,17 @@ public class FXML_GUIController implements Initializable {
                     }
                     XYChart.Series series1 = new XYChart.Series();
                     series1.setName("Hs" + hs + "Tp" + tp + "wd" + wd);
-                    
+                           
                     for (int i=0; i < data.length; i++) {
-                        series1.getData().add(new XYChart.Data(
-                                data[i], 
-                                -Math.log(-Math.log((i+0.5)/data.length))));
+                        if (radioMax.isSelected()) {
+                            y = (i+0.5)/data.length;
+                        } else {
+                            y = (data.length-i-0.5)/data.length;
+                        }
+                        if (radioLogLog.isSelected()) {
+                            y = -Math.log(-Math.log(y));
+                        } 
+                        series1.getData().add(new XYChart.Data(data[i], y));
                         if (data[i] > max) { max = data[i]; }
                         if (data[i] < min) { min = data[i]; }
                     }
@@ -210,10 +216,25 @@ public class FXML_GUIController implements Initializable {
         cc.putImage(image);
         Clipboard.getSystemClipboard().setContent(cc);
     }
+    // Handler for radio button changes affecting the plot
+    @FXML protected void handleRadios(ActionEvent event) {
+        if (radioLogLog.isSelected()) {
+            yAxis.setLabel("-log(-log(cdf))");
+        } else {
+            yAxis.setLabel("cdf");
+        }
+        plot();
+    }
     // Handler for changes in the comboBox
     class ListenerComboBoxChange implements ChangeListener<String> {
         @Override
         public void changed(ObservableValue<? extends String>obv, String ov, String nv) {
+            String var = comboBox.getSelectionModel().getSelectedItem();
+            if (var.toLowerCase().contains("max")) {
+                radioMax.setSelected(true);
+            } else if (var.toLowerCase().contains("min")) {
+                radioMin.setSelected(true);
+            }
             plot();
         }
     }

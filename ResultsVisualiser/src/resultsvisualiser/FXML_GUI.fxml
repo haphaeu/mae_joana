@@ -67,7 +67,7 @@
                      </font></Label>
                   <HBox maxHeight="100.0" minHeight="75.0">
                      <children>
-                        <ListView fx:id="listHeading" />
+                        <ListView fx:id="listHeading" prefHeight="81.0" prefWidth="164.0" />
                         <GridPane alignment="TOP_CENTER">
                           <columnConstraints>
                             <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
@@ -78,6 +78,23 @@
                             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                           </rowConstraints>
+                           <children>
+                              <RadioButton fx:id="radioCDF" mnemonicParsing="false" onAction="#handleRadios" text="cdf" GridPane.rowIndex="2">
+                                 <toggleGroup>
+                                    <ToggleGroup fx:id="distroRadioGroup" />
+                                 </toggleGroup></RadioButton>
+                              <RadioButton fx:id="radioLogLog" mnemonicParsing="false" onAction="#handleRadios" selected="true" text="log-log" toggleGroup="$distroRadioGroup" GridPane.rowIndex="1" />
+                              <RadioButton fx:id="radioMin" mnemonicParsing="false" onAction="#handleRadios" text="min" GridPane.columnIndex="1" GridPane.rowIndex="2">
+                                 <toggleGroup>
+                                    <ToggleGroup fx:id="minmaxRadioGroup" />
+                                 </toggleGroup></RadioButton>
+                              <RadioButton fx:id="radioMax" mnemonicParsing="false" onAction="#handleRadios" selected="true" text="max" toggleGroup="$minmaxRadioGroup" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                              <Label text="Y axis" />
+                              <Label text="Sample" GridPane.columnIndex="1" />
+                           </children>
+                           <HBox.margin>
+                              <Insets left="10.0" />
+                           </HBox.margin>
                         </GridPane>
                      </children>
                   </HBox>

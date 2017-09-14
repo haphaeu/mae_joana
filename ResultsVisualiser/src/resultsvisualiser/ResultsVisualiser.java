@@ -9,6 +9,7 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 
 /**
@@ -21,6 +22,9 @@ public class ResultsVisualiser extends Application {
         Parent root = FXMLLoader.load(getClass().getResource("FXML_GUI.fxml"));
         Scene scene = new Scene(root);
         stage.setScene(scene);
+        //stage.getIcons().add(new Image("icon.png"));
+        stage.getIcons().add(new Image(getClass().getResourceAsStream("icon.png"))); 
+        stage.setTitle("ResultsVisualiser for rlc - v1.0");
         stage.setWidth(800);
         stage.setHeight(600);
         stage.setMinWidth(640);
