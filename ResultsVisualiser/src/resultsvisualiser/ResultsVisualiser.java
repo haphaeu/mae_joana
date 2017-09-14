@@ -21,6 +21,11 @@ public class ResultsVisualiser extends Application {
         Parent root = FXMLLoader.load(getClass().getResource("FXML_GUI.fxml"));
         Scene scene = new Scene(root);
         stage.setScene(scene);
+        stage.setWidth(800);
+        stage.setHeight(600);
+        stage.setMinWidth(640);
+        stage.setMinHeight(360);
+        
         stage.show();
     }
     public static void main(String[] args) {

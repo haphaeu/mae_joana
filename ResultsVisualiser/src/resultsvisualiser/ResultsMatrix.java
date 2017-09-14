@@ -11,8 +11,41 @@ import java.util.Set;
  * ResultsMatrix
  * *************
  * 
+ * Reads the results file from the repeated lowering control module, typically
+ * called "results.txt". 
  * 
+ * Converts the data into a double[][] matrix with all the rows. 
  * 
+ * Implements getters that work with the ResultsVisualiser application.
+ * 
+ * Private members:
+ *   double[][] m               : matrix with all data, m[3+numVars][numRows]
+ *   String[] variables         : names of the variables
+ *   int numRows, numVars       : number od data rows and number of variables
+ *   private String fileContents: string with the contents of results.txt
+ *
+ * Public getters:
+ *   String[] getVars()
+ *   int      getNumVars()
+ *   int      getRows()
+ *   double[] getSample(String var, double hs, double tp, double wd) 
+ *   double[] getSample(ind idxVar, double hs, double tp, double wd)
+ *   Double[] getHsSet()
+ *   Double[] getTpSet()
+ *   Double[] getTpSet(double hs)
+ *   Double[] getWDSet()
+ *   String[] getHsSetasString()
+ *   String[] getTpSetasString()
+ *   String[] getTpSetasString(double hs)
+ *   String[] getWDSetasString
+ *
+ * Public setters:
+ *    void loadResults(File f)
+ *    void loadResults(String fname)
+ *
+ * Main implemented to perform some tests and benchmarking.
+ *
+ *
  * @author: Rafael Rossi
  * @date: 13/09/2017
  */
@@ -42,8 +75,6 @@ public class ResultsMatrix {
      * Reads the file with results
      */
     private void readFile(File file) {
-        // to be implemented
-        // should initialize fileContents
         try {
             Scanner sc = new Scanner(file);
             fileContents = sc.useDelimiter("\\Z").next();
@@ -61,7 +92,7 @@ public class ResultsMatrix {
             return;
         }
         String[] lines = fileContents.split("\n");
-        String[] header = lines[0].split("\t");
+        String[] header = lines[0].replace("\n", "").replace("\r", "").split("\t");
         
         numRows = lines.length - 1;       // not count header
         numVars = header.length - 3;      // not count Hs, Tp, wd
@@ -122,7 +153,6 @@ public class ResultsMatrix {
         }
         Arrays.sort(ret_sample);
         return ret_sample;
-
     }
     
     /*
@@ -234,7 +264,7 @@ public class ResultsMatrix {
         ResultsMatrix test = new ResultsMatrix();
         test.loadResults("test.txt");
         
-        //test.print();
+        test.print();
         
         System.out.println("Sample is:");
         double[] sample = test.getSample("var1", 2.5, 8.0, 180);

@@ -1,29 +1,9 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- *
+ DEPRECATED CLASS
 
+ To be deleted soon...
 
-O código está ficando meio baguncado.
-
-Presica SIMPLIFICAR:
-
- . ResultsLoader.readFile()
-    - simplificar - deixar somente leitura do arquivo
-	- criar um outro método para processar o conteúdo
-
- .  HashMap<String, double[]> table;
-     - estrutura ERRADA, precisa agrupar os seeds em um array
-     - precisa tambem agrupar as variaveis
-     - talvez melhor deixar tudo em uma matrix e a cada request correr esta
-       matriz e criar o grupo de seeds necessario, retornando um double[]
-
-OUTROS:
- . fazer backup dessa bosta
-
- . copiar o jdk e o netbeans etc pro hd pra ficar 100% portable
-
+ Much better implemented in ResultsMatrix.
 
  */
 package resultsvisualiser;
@@ -37,7 +17,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  *

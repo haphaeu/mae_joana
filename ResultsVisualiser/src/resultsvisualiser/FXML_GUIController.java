@@ -1,13 +1,10 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package resultsvisualiser;
 
 import java.io.File;
 
 import java.net.URL;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.ResourceBundle;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -16,20 +13,34 @@ import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.SnapshotParameters;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.ScatterChart;
 import javafx.scene.chart.XYChart;
+import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
-import javafx.scene.control.MenuBar;
 import javafx.scene.control.SelectionMode;
+import javafx.scene.image.WritableImage;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.stage.FileChooser;
 
 
 /**
- *
- * @author rarossi
+ * FXML_GUIController
+ * 
+ * Controller class for the ResultsVisualiser application.
+ * 
+ * Graphical tool to visualize results from the repeated lowering control
+ * module. 
+ * 
+ * Imports a text file, typically "results.txt", and plots the sample
+ * cdf in a Gumbel paper (log-log).
+ * 
+ * @author Rafael Rossi
+ * @date 10.09.2017
  */
 public class FXML_GUIController implements Initializable {
     
@@ -40,9 +51,9 @@ public class FXML_GUIController implements Initializable {
     @FXML private ListView<String> listHs;
     @FXML private ListView<String> listTp;
     @FXML private ListView<String> listHeading;
-    @FXML private MenuBar menuBar;
+    @FXML private Button btnOpen;
+    @FXML private Button btnCopy;
 
-    
     ObservableList<String> selectedHs;
     ObservableList<String> selectedTp;
     ObservableList<String> selectedHeading;
@@ -56,46 +67,84 @@ public class FXML_GUIController implements Initializable {
         listTp.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         listHeading.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         
-        listHs.getSelectionModel().selectedItemProperty().addListener(new ListenerLists());
+        listHs.getSelectionModel().selectedItemProperty().addListener(new ListenerListHs());
         listTp.getSelectionModel().selectedItemProperty().addListener(new ListenerLists());
         listHeading.getSelectionModel().selectedItemProperty().addListener(new ListenerLists());
         
         comboBox.valueProperty().addListener(new ListenerComboBoxChange());
         
-        xAxis.setAutoRanging(false);
+        selectedHs = listHs.getSelectionModel().getSelectedItems();
+        selectedTp = listTp.getSelectionModel().getSelectedItems();
+        selectedHeading = listHeading.getSelectionModel().getSelectedItems();
         
+        xAxis.setAutoRanging(false);
+        xAxis.setLowerBound(0);
+        xAxis.setUpperBound(1);
+        xAxis.setTickUnit(0.1);
+        yAxis.setLowerBound(0);
+        yAxis.setUpperBound(1);
     }    
-    
 
-    
     private void openFile(File file) {
         results = new ResultsMatrix(file);
+        comboBox.getItems().clear();
         populateItems();
     }
 
+    // Populates the GUI items, except listTp, with the values read from file.
     private void populateItems() {
         comboBox.getItems().addAll(results.getVars());
         comboBox.getSelectionModel().selectFirst();
         
         ObservableList<String> data;
-        
+  
         data = FXCollections.observableArrayList(results.getHsSetasString());
         listHs.setItems(data);
-        
-        
-        data = FXCollections.observableArrayList(results.getTpSetasString());
-        listTp.setItems(data);
         
         data = FXCollections.observableArrayList(results.getWDSetasString());
         listHeading.setItems(data);
         
         listHs.getSelectionModel().selectFirst();
-        listTp.getSelectionModel().selectFirst();
         listHeading.getSelectionModel().selectFirst();
-        
+        updateTpList();
+        listTp.getSelectionModel().selectFirst();
         plot();
     }
+    // Populates ot updates the list of Tps according to the selected Hs values
+    private void updateTpList() {
+        ObservableList<String> data;
+        HashSet<String> hashTp = new HashSet<>();
+        for (int i=0; i < selectedHs.size(); i++) {
+            hashTp.addAll(Arrays.asList(results.getTpSetasString(
+                    Double.parseDouble(selectedHs.get(i)))));
+        }
+        data = FXCollections.observableArrayList(hashTp);
+        sortCollection(data);
+        listTp.setItems(data);
+    }
+    // Auxiliary function to sort the items in a list.
+    // These items are usually string, which do not sort as numbers.
+    // So need to convert to numbers, sort, and then back to string...
+    private void sortCollection(ObservableList<String> data) {
+        double[] ddata = new double[data.size()];
+        String[] sdata = new String[data.size()];
+        for (int i=0; i < ddata.length; i++) {
+            ddata[i] = Double.parseDouble(data.get(i));
+        }
+        Arrays.sort(ddata);
+        for (int i=0; i < sdata.length; i++) {
+            sdata[i] = Double.toString(ddata[i]);
+        }
+        data.clear();
+        data.addAll(sdata);
+    }
 
+    // Make the plots for all selected Hs, Tp and directions.
+    //
+    // TBI: 
+    //   - Gumbel fit plot
+    //   - key percentile P90
+    //
     private void plot() {
         chart.getData().clear();
         if (!readyToPlot) {
@@ -125,12 +174,12 @@ public class FXML_GUIController implements Initializable {
                         continue;
                     }
                     XYChart.Series series1 = new XYChart.Series();
-                    series1.setName("Hs"+hs+"Tp"+tp+"wd"+wd);
+                    series1.setName("Hs" + hs + "Tp" + tp + "wd" + wd);
                     
                     for (int i=0; i < data.length; i++) {
-                        series1.getData().add(
-                                new XYChart.Data(data[i], 
-                                                 -Math.log(-Math.log((i+0.5)/data.length))));
+                        series1.getData().add(new XYChart.Data(
+                                data[i], 
+                                -Math.log(-Math.log((i+0.5)/data.length))));
                         if (data[i] > max) { max = data[i]; }
                         if (data[i] < min) { min = data[i]; }
                     }
@@ -138,64 +187,58 @@ public class FXML_GUIController implements Initializable {
                     range = max - min;
                     xAxis.setLowerBound(min - 0.05*range);
                     xAxis.setUpperBound(max + 0.05*range);
-                    xAxis.setTickUnit(1);
+                    xAxis.setTickUnit(1+(int)range/10);
+                    
                 }
             }
         }            
     }
     
-    @FXML protected void handleButtonAction(ActionEvent event) {
-        lblTest.setText("Hello World!");
-        plot();
-    }
-    @FXML protected void handleMenuFileOpen(ActionEvent event) {
+    // Handler for Open button
+    @FXML protected void handleBtnOpen(ActionEvent event) {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Open Resource File");
-        File file = fileChooser.showOpenDialog(menuBar.getScene().getWindow());
+        File file = fileChooser.showOpenDialog(btnOpen.getScene().getWindow());
         if (file != null) {
             openFile(file);
         }
     }
-    
+    // Handler for Copy button
+    @FXML protected void handleBtnCopy(ActionEvent event) {
+        WritableImage image = chart.snapshot(new SnapshotParameters(), null);
+        ClipboardContent cc = new ClipboardContent();
+        cc.putImage(image);
+        Clipboard.getSystemClipboard().setContent(cc);
+    }
+    // Handler for changes in the comboBox
     class ListenerComboBoxChange implements ChangeListener<String> {
         @Override
         public void changed(ObservableValue<? extends String>obv, String ov, String nv) {
-            System.out.println("Combo listener called");
             plot();
         }
     }
-    class ListenerLists implements ChangeListener<String> {
+    // Handler for changes in the Hs list
+    class ListenerListHs implements ChangeListener<String> {
         @Override
         public void changed(ObservableValue<? extends String> obv, String ov, String nv) {
-            System.out.println("Listener called.");
-            
-            System.out.print("Selected Hs:");
             selectedHs = listHs.getSelectionModel().getSelectedItems();
-            if (! selectedHs.isEmpty()) {
-                selectedHs.forEach((si) -> { System.out.print(" " + si); });
-            }
-            System.out.println("");
-            
-            System.out.print("Selected Tps:");
-            selectedTp = listTp.getSelectionModel().getSelectedItems();
-            if (! selectedTp.isEmpty()) {
-                selectedTp.forEach((si) -> { System.out.print(" " + si); });
-            }
-            System.out.println("");
-            
-            System.out.print("Selected headings:");
-            selectedHeading = listHeading.getSelectionModel().getSelectedItems();
-            if (! selectedHeading.isEmpty()) {
-                selectedHeading.forEach((si) -> { System.out.print(" " + si); });
-            }
-            System.out.println("");
-            
             readyToPlot = !(selectedHs.isEmpty() 
                             || selectedTp.isEmpty()
                             || selectedHeading.isEmpty());
-
+            updateTpList();
             plot();
         }
     }
-    
+    // Handler for changes in the Tp and headings lists
+    class ListenerLists implements ChangeListener<String> {
+        @Override
+        public void changed(ObservableValue<? extends String> obv, String ov, String nv) {
+            selectedTp = listTp.getSelectionModel().getSelectedItems();
+            selectedHeading = listHeading.getSelectionModel().getSelectedItems();
+            readyToPlot = !(selectedHs.isEmpty() 
+                            || selectedTp.isEmpty()
+                            || selectedHeading.isEmpty());
+            plot();
+        }
+    }
 }
