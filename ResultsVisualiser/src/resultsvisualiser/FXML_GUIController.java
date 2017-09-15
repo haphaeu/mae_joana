@@ -115,7 +115,7 @@ public class FXML_GUIController implements Initializable {
     // Populates ot updates the list of Tps according to the selected Hs values
     private void updateTpList() {
         ObservableList<String> data;
-        HashSet<String> hashTp = new HashSet<>();
+        HashSet<String> hashTp = new HashSet<String>();
         for (int i=0; i < selectedHs.size(); i++) {
             hashTp.addAll(Arrays.asList(results.getTpSetasString(
                     Double.parseDouble(selectedHs.get(i)))));

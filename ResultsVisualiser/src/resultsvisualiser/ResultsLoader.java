@@ -44,10 +44,10 @@ public class ResultsLoader {
         createNameSets();
     }
     ResultsLoader () {
-        table = new HashMap<>();
-        seastateCounter = new HashMap<>();
-        periodsPerHs = new HashMap<>();
-        directions = new HashSet<>();
+        table = new HashMap<String, double[]>();
+        seastateCounter = new HashMap<String, Integer>();
+        periodsPerHs = new HashMap<Double, double[]>();
+        directions = new HashSet<Integer>();
     }
     final void createNameSets() {
         setDirections = new String[directions.size()];
@@ -59,7 +59,7 @@ public class ResultsLoader {
         }
         System.out.println("");
         
-        HashSet<Double> periods = new HashSet<>();
+        HashSet<Double> periods = new HashSet<Double>();
         setHs = new String[periodsPerHs.keySet().size()];
         i = 0;
         System.out.println("Names of Hs:");
@@ -149,7 +149,7 @@ public class ResultsLoader {
         if (!periodsPerHs.containsKey(hs)) {
             periodsPerHs.put(hs, new double[] {tp});
         } else {
-            tps = new HashSet<>();
+            tps = new HashSet<Double>();
             for (double x: periodsPerHs.get(hs)) {
                 tps.add(x);
             }
