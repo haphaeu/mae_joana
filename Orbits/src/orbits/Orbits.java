@@ -23,8 +23,9 @@ import static java.lang.Math.max;
  *
  * @author raf
  */
-public class Orbits implements KeyListener //, MouseMotionListener, MouseListener 
-{
+public class Orbits implements KeyListener, 
+                               MouseMotionListener, 
+                               MouseWheelListener {
 
     MyDrawPanel panel;
     Planet[] planets;
@@ -46,8 +47,8 @@ public class Orbits implements KeyListener //, MouseMotionListener, MouseListene
         panel = new MyDrawPanel();
         frame.getContentPane().add(panel);
         frame.addKeyListener(this);
-        //frame.addMouseMotionListener(this);
-        //frame.addMouseListener(this);
+        frame.addMouseMotionListener(this);
+        frame.addMouseWheelListener(this);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(1000, 1000);
         frame.setResizable(true);
@@ -77,7 +78,8 @@ public class Orbits implements KeyListener //, MouseMotionListener, MouseListene
                                 new double[] {108.94e9, 0.0},
                                 Color.yellow);
         planets[3] = new Planet("Mercury", 0.33011e24, 2439.7e3,
-                                new double[] {38.86e3, 0.0}, new double[] {0.0, 69.82e9},
+                                new double[] {38.86e3, 0.0}, 
+                                new double[] {0.0, 69.82e9},
                                 Color.red);
         planets[4] = new Planet("Mars", 0.64171e24, 3396.2e3,
                                 new double[] {-21.97e3, 0.0},
@@ -86,7 +88,9 @@ public class Orbits implements KeyListener //, MouseMotionListener, MouseListene
         // can't really see the moon at this scale...
         // need to implement zoon =)
         //planets[5] = new Planet("Moon", 0.07346e24, 1738.1e3,
-        //                         new double[] {-0.970e3, 30.29e3}, new double[] {-147.09e9, 0.4055e9});
+        //                         new double[] {-0.970e3, 30.29e3}, 
+        //                         new double[] {-147.09e9, 0.4055e9}, 
+        //                         Color.gray);
     }
     
     private void rescale() {
@@ -145,6 +149,28 @@ public class Orbits implements KeyListener //, MouseMotionListener, MouseListene
     }
     @Override public void keyReleased(KeyEvent ev) {}
     @Override public void keyTyped(KeyEvent ev) {}
+    
+    // MouseMotionListener interface
+    int mouseX, mouseY;
+    @Override
+    public void mouseMoved(MouseEvent e){
+        mouseX = e.getPoint().x; 
+        mouseY = e.getPoint().y;
+    }
+    @Override public void mouseDragged(MouseEvent e) {}
+   
+    // MouseWheelInterface
+    @Override public void mouseWheelMoved(MouseWheelEvent e) {
+       int notches = e.getWheelRotation();
+       if (notches > 0)
+           Planet.drawScale *= 1.1;
+       else if (notches < 0)
+           Planet.drawScale /= 1.1;
+       Planet.drawShiftX = (2*Planet.drawShiftX + mouseX) / 3;
+       Planet.drawShiftY = (2*Planet.drawShiftY + mouseY) / 3;
+       for (Planet p: planets)
+           p.rescaleOrbitDraw();
+    }
     
     // drawings
     class MyDrawPanel extends JPanel {
@@ -291,6 +317,12 @@ class Planet {
             System.out.println("   vel " + velocity[0] + " " + velocity[1]);
             System.out.println("   pos " + position[0] + " " + position[1]);
             System.out.println("   pos dwg " + positionDraw[0] + " " + positionDraw[1]);
+        }
+    }
+    public void rescaleOrbitDraw() {
+        for (int i=0; i < orbit.length; i++) {
+            orbitDraw[i][0] = (int)(orbit[i][0]/drawScale) + drawShiftX;
+            orbitDraw[i][1] = (int)(orbit[i][1]/drawScale) + drawShiftY;
         }
     }
 }
