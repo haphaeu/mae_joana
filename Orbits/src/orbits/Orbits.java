@@ -18,6 +18,7 @@ import java.awt.event.*;
 import static java.lang.Math.pow;
 import static java.lang.Math.sqrt;
 import static java.lang.Math.max;
+import static java.lang.Math.abs;
 
 /**
  *
@@ -31,6 +32,7 @@ public class Orbits implements KeyListener,
     Planet[] planets;
     
     boolean debug = false;
+    boolean paused = false;
     int timer = 10;
     
     boolean showOrbits = false;
@@ -87,10 +89,10 @@ public class Orbits implements KeyListener,
                                 Color.green);
         // can't really see the moon at this scale...
         // need to implement zoon =)
-        //planets[5] = new Planet("Moon", 0.07346e24, 1738.1e3,
-        //                         new double[] {-0.970e3, 30.29e3}, 
-        //                         new double[] {-147.09e9, 0.4055e9}, 
-        //                         Color.gray);
+//        planets[5] = new Planet("Moon", 0.07346e24, 1738.1e3,
+//                                 new double[] {-0.970e3, 30.29e3}, 
+//                                 new double[] {-147.09e9, 0.4055e9}, 
+//                                 Color.gray);
     }
     
     private void rescale() {
@@ -106,15 +108,15 @@ public class Orbits implements KeyListener,
         System.out.println(panel.getWidth() + " " + panel.getHeight());
         while (true) {
             
-            // First update the speed of all planets
-            for(Planet p: planets)
-                p.updateVelocity(planets);
-            // and then update their positions
-            for(Planet p: planets)
-                p.updateOrbit();
-            
+            if (!paused) {
+                // First update the speed of all planets
+                for(Planet p: planets)
+                    p.updateVelocity(planets);
+                // and then update their positions
+                for(Planet p: planets)
+                    p.updateOrbit();
+            }
             panel.repaint();
-            
             try {
                 Thread.sleep(timer);
             } catch (InterruptedException ex) {
@@ -141,6 +143,23 @@ public class Orbits implements KeyListener,
                 for (Planet p: planets)
                     p.orbitPoints = 0;
                 panel.repaint();
+                break;
+            case KeyEvent.VK_P:
+                System.out.println("P");
+                paused = !paused;
+                System.out.println("   paused " + paused);
+                break;
+            case KeyEvent.VK_W:
+                System.out.println("W");
+                System.out.println("   increase Earth orbital velocity");
+                planets[0].velocity[0] *= 1.1;
+                planets[1].velocity[0] *= 1.1;
+                break;
+            case KeyEvent.VK_S:
+                System.out.println("S");
+                System.out.println("   decrease Earth orbital velocity");
+                planets[0].velocity[0] /= 1.1;
+                planets[1].velocity[0] /= 1.1;
                 break;
             default:
                 System.out.println("not implemented");
@@ -180,7 +199,7 @@ public class Orbits implements KeyListener,
             int h = this.getHeight();
             
             gfx.fillRect(0, 0, w, h);
-            
+
             for (Planet p: planets) {
                 if (debug) {
                     System.out.println("Drawing" + p.name);
@@ -190,8 +209,12 @@ public class Orbits implements KeyListener,
                 gfx.setColor(p.color);
                 gfx.fillOval(p.positionDraw[0]-p.radiusDraw, p.positionDraw[1]-p.radiusDraw,
                              2*p.radiusDraw, 2*p.radiusDraw);
+                if ( (abs(mouseX - p.positionDraw[0]) < 50) &&
+                     (abs(mouseY - p.positionDraw[1]) < 50))
+                    gfx.drawString(p.name, 10, 10);
+
             }
-            
+
             if (showOrbits) {
                 if (debug) System.out.println("Showing orbits");
                 gfx.setColor(Color.gray);
@@ -204,8 +227,7 @@ public class Orbits implements KeyListener,
                                      p.orbitDraw[i+1][0], p.orbitDraw[i+1][1]);
                     }
                 }
-                        
-            }     
+            }
         }
     }
 }
