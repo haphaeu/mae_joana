@@ -7,11 +7,12 @@
  *
  *
  */
-package orbits2;
+package orbits3;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import static java.lang.Math.abs;
+import static java.lang.Math.atan;
 import static java.lang.Math.pow;
 import static java.lang.Math.sqrt;
 import java.util.ArrayList;
@@ -20,13 +21,13 @@ import java.util.ArrayList;
  *
  * @author raf
  */
-public class Orbits2 implements KeyListener, 
+public class Orbits3 implements KeyListener, 
                                 MouseListener,
                                 MouseMotionListener, 
                                 MouseWheelListener {
 
     MyDrawPanel panel;
-    ArrayList<Planet> planets = new ArrayList<>();
+    ArrayList<Planet1> planets = new ArrayList<>();
     
     boolean debug = false;
     boolean paused = false;
@@ -38,9 +39,11 @@ public class Orbits2 implements KeyListener,
     double scale;
     int shiftX, shiftY;
     
+    double newPlanetX, newPlanetY;
+    
     public static void main(String[] args) {
         System.out.println("main()");
-        Orbits2 orbit = new Orbits2();
+        Orbits3 orbit = new Orbits3();
         orbit.setup();
     }
     
@@ -57,34 +60,40 @@ public class Orbits2 implements KeyListener,
         frame.setSize(1000, 1000);
         frame.setResizable(true);
         frame.setVisible(true);
-        initPlanets();
+        init();
         start();
     }
     
-    private void initPlanets() {
-        System.out.println("initPlanets()");
+    private void init() {
+        System.out.println("init()");
         
-        rescale();
-        
-
-    }
-    private void addPlanet() {
-        planets.add(new Planet("nameless",
-                               100*pow(scale, 3), 
-                               scale*10,
-                               new double[] {velX, velY}, 
-                               new double[] {(newPlanetX-shiftX)*scale,
-                                             (newPlanetY-shiftY)*scale},
-                               Color.blue));
-    }
-    
-    private void rescale() {
         int w = panel.getWidth();
         int h = panel.getHeight();
-        scale = 1.0;
+        scale = 15000.0;
         shiftX = w/2;
         shiftY = h/2;
+        
+        planets.add(new Planet1("earth",
+                               5.9723e24, 
+                               6378.137e3,
+                               new double[] {0, 0}, 
+                               new double[] {0, 0},
+                               Color.blue));
+        
+            // Init all planets at north pole
+        newPlanetX = 0; 
+        newPlanetY = -6378.137e3;
+ 
     }
+    private void addPlanet() {
+        planets.add(new Planet1("nameless",
+                               100, 
+                               50000,
+                               new double[] {velX, velY}, 
+                               new double[] {newPlanetX, newPlanetY},
+                               Color.red));
+    }
+    
     
     private void start() {
         System.out.println("start()");
@@ -94,7 +103,7 @@ public class Orbits2 implements KeyListener,
             if (!paused) {
                 // First update the speed of all planets
                 planets.forEach((p) -> {
-                    p.updateVelocity(planets);
+                    p.updateVelocity(planets.get(0));
                 });
                 // and then update their positions
                 planets.forEach((p) -> {
@@ -111,26 +120,18 @@ public class Orbits2 implements KeyListener,
         }
     }
     private void checkCollisions() {
-        for (int i=0; i < planets.size()-1; i++)
-            for (int j=i+1; j<planets.size(); j++) {
-                Planet pi = planets.get(i);
-                Planet pj = planets.get(j);
-                double dist = sqrt(pow(pi.position[0] - pj.position[0], 2) +
-                                   pow(pi.position[1] - pj.position[1], 2));
-                    if (dist < pi.radius + pj.radius) {
-                        System.out.println("Chibaku tensei!");
-                        pi.velocity[0] = (pi.velocity[0]*pi.mass + pj.velocity[0] * pj.mass) / (pi.mass + pj.mass);
-                        pi.velocity[1] = (pi.velocity[1]*pi.mass + pj.velocity[1] * pj.mass) / (pi.mass + pj.mass);
-                        pi.mass += pj.mass;
-                        pi.radius = pow(pow(pi.radius, 3) + pow(pj.radius, 3), 0.33333333);
-                        pi.orbitPoints = 0;
-                        planets.remove(pj);
-                    }
-            }
+        Planet1 pj = planets.get(0);  // Earth
+        for (int i=1; i < planets.size(); i++) {
+            Planet1 pi = planets.get(i);
+            double dist = sqrt(pow(pi.position[0] - pj.position[0], 2) +
+                               pow(pi.position[1] - pj.position[1], 2));
+                if (dist < pj.radius) {
+                    pi.chibakuTensei();
+                }
+        }
     }
     
     // KeyPressed interface
-    int newPlanetX, newPlanetY;
     @Override
     public void keyPressed(KeyEvent ev) {
         System.out.print("Key pressed: ");
@@ -139,10 +140,8 @@ public class Orbits2 implements KeyListener,
                 if (!addingPlanetMode) {
                     System.out.println("A");
                     System.out.println("   adding planet");
-                    newPlanetX = mouseX;
-                    newPlanetY = mouseY;
-                    newPlanetSpeedX = mouseX;
-                    newPlanetSpeedY = mouseY;
+                    newPlanetSpeedX = newPlanetX;
+                    newPlanetSpeedY = newPlanetY;
                     addingPlanetMode = true;
                     paused = true;
                 }
@@ -150,7 +149,7 @@ public class Orbits2 implements KeyListener,
             case KeyEvent.VK_R:
                 System.out.println("R");
                 System.out.println("   remove last added planet");
-                if (planets.size() > 0)
+                if (planets.size() > 1)
                     planets.remove(planets.size()-1);
                 break;
             case KeyEvent.VK_O:
@@ -200,7 +199,7 @@ public class Orbits2 implements KeyListener,
     
     // MouseMotionListener interface
     int mouseX, mouseY;
-    int newPlanetSpeedX, newPlanetSpeedY;
+    double newPlanetSpeedX, newPlanetSpeedY;
     double velX, velY;
     @Override
     public void mouseMoved(MouseEvent e){
@@ -208,16 +207,16 @@ public class Orbits2 implements KeyListener,
         mouseY = e.getPoint().y - 24;
         
         if (addingPlanetMode) {
-            newPlanetSpeedX = mouseX;
-            newPlanetSpeedY = mouseY;
-            if (abs(newPlanetSpeedX - newPlanetX) >= 10 ||
-                abs(newPlanetSpeedY - newPlanetY) >= 10) {
-                velX = scale * (double)(newPlanetSpeedX - newPlanetX) / 50.0;
-                velY = scale * (double)(newPlanetSpeedY - newPlanetY) / 50.0;
-            } else {
+            newPlanetSpeedX = (mouseX-shiftX)*scale;
+            newPlanetSpeedY = (mouseY-shiftY)*scale;
+            if (abs(newPlanetSpeedX - newPlanetX) >= 10*scale)
+                velX = (newPlanetSpeedX - newPlanetX) / 1e3;
+            else
                 velX = 0;
+            if (abs(newPlanetSpeedY - newPlanetY) >= 10*scale)
+                velY = (newPlanetSpeedY - newPlanetY) / 1e3;
+            else
                 velY = 0;
-            }
         }
     }
    
@@ -226,11 +225,13 @@ public class Orbits2 implements KeyListener,
         if (!addingPlanetMode) {
             int cX = (int)((mouseX-shiftX)*scale);
             int cY = (int)((mouseY-shiftY)*scale);
+            
             int notches = e.getWheelRotation();
             if (notches > 0)
                 scale *= 1.1;
             else if (notches < 0)
                 scale /= 1.1;
+            
             shiftX = mouseX - (int)(cX/scale);
             shiftY = mouseY - (int)(cY/scale);
             System.out.println("Rescale " + scale);
@@ -279,6 +280,13 @@ public class Orbits2 implements KeyListener,
     class MyDrawPanel extends JPanel {
         @Override
         public void paintComponent(Graphics gfx) {
+            
+            /*
+             real_world = (screen-shift)*scale
+             screen = real/scale + shift
+            */
+            
+            
             int w = this.getWidth();
             int h = this.getHeight();
             
@@ -287,7 +295,7 @@ public class Orbits2 implements KeyListener,
             gfx.drawString("Mouse " + mouseX + " " + mouseY, 10, 10);
             gfx.drawString(String.format("Scale %.1f", scale), 10, 25);
 
-            for (Planet p: planets) {
+            for (Planet1 p: planets) {
                 if (debug) {
                     System.out.println("Drawing" + p.name);
                     System.out.println("   pos " + p.position[0] + " " + p.position[1]);
@@ -302,15 +310,19 @@ public class Orbits2 implements KeyListener,
             
             if (addingPlanetMode) {
                 gfx.setColor(Color.gray);
-                gfx.drawString(String.format("Velocity %.2f %.2f", velX, velY), 10, 40);
-                gfx.drawLine(newPlanetX, newPlanetY,
-                             newPlanetSpeedX, newPlanetSpeedY);
+                gfx.drawString(String.format("Velocity vx=%.0f, vy=%.0f, v=%.0f, theta=%.1f",
+                        velX, velY, sqrt(velX*velX+velY*velY), 57.2957795131*atan(-velY/velX)),
+                        10, 40);
+                gfx.drawLine((int)(newPlanetX/scale)+shiftX,
+                             (int)(newPlanetY/scale)+shiftY,
+                             (int)(newPlanetSpeedX/scale)+shiftX,
+                             (int)(newPlanetSpeedY/scale)+shiftY);
             }
 
             if (showOrbits) {
                 //if (debug) System.out.println("Showing orbits");
                 gfx.setColor(Color.gray);
-                for (Planet p: planets) {
+                for (Planet1 p: planets) {
                     //if (debug) System.out.println("  " + p.name);
                     for (int i=0; i < p.orbitPoints-1; i++) {
                         //if (debug)
@@ -326,13 +338,19 @@ public class Orbits2 implements KeyListener,
     }
 }
 
-
-class Planet {
-    //static final double G = 6.674e-11;
-    static final double G = 1.0;
-    static double dt = 1;
+/*
+ * Deviation here
+ * Planets are onlly checked against the Earth
+ *
+ *
+ */
+class Planet1 {
+    static final double G = 6.674e-11;
+    //static final double G = 1.0e-3;
+    static double dt = 10;
     
     boolean debug = false;
+    private boolean hasCollided = false;
     
     String name;
     double mass, radius;
@@ -346,7 +364,7 @@ class Planet {
     double[] u = new double[2];
     double distance;
     
-    public Planet(String nm, double m, double r,
+    public Planet1(String nm, double m, double r,
                   double[] v, double[] p, Color c) {
         System.out.println("new Planet() ");
         name = nm;
@@ -367,55 +385,58 @@ class Planet {
         System.out.println("   Speed " + velocity[0] + " " + velocity[1]);
     }
     
-    public void updateVelocity(ArrayList<Planet> planets) {
-        if (debug)
-            System.out.println("Updating velocity of " + name);
-        double a;
-        for (Planet p: planets) {
+    public void updateVelocity(Planet1 p /*Earth*/) {
+        if (!hasCollided) {
+            double a;
             if (p != this) {
                 if (debug)
                     System.out.println("   with " + p.name);
-                
+
                 distance = sqrt(pow(position[0] - p.position[0], 2) + 
                                    pow(position[1] - p.position[1], 2));
-        
+
                 // Unit vector pointing towards the other planet
                 u[0] = -(position[0] - p.position[0]) / distance;
                 u[1] = -(position[1] - p.position[1]) / distance;
-        
+
                 // Classic Newton mechanic:
                 // F = m1.a = G.m1.m2.a/r² ==> a = G.m2/r²
                 a = G * p.mass / pow(distance, 2);
-        
+
                 velocity[0] += a*u[0]*dt;
                 velocity[1] += a*u[1]*dt;
             }
         }
     }
     public void updateOrbit() {
-        
-        position[0] += velocity[0]*dt; 
-        position[1] += velocity[1]*dt;
-        
-        // Check if need to re-allocate orbit arrays
-        if (orbitPoints == orbit.length) {
-            if (debug) System.out.println("Increasing orbit array size...");
-            double[][] tmp = new double[orbit.length + size][2];
-            System.arraycopy(orbit, 0, tmp, 0, orbit.length);
-            orbit = tmp; 
-        }
-        
-        orbit[orbitPoints][0] = position[0];
-        orbit[orbitPoints][1] = position[1];
-        orbitPoints++;
-        
-        if (debug) {
-            System.out.println("Updating orbit of " + name);
-            System.out.println("   Dist " + distance);
-            System.out.println("   u " + u[0] + " " + u[1]);
-            System.out.println("   vel " + velocity[0] + " " + velocity[1]);
-            System.out.println("   pos " + position[0] + " " + position[1]);
+        if (!hasCollided) {
+            position[0] += velocity[0]*dt; 
+            position[1] += velocity[1]*dt;
+
+            // Check if need to re-allocate orbit arrays
+            if (orbitPoints == orbit.length) {
+                if (debug) System.out.println("Increasing orbit array size...");
+                double[][] tmp = new double[orbit.length + size][2];
+                System.arraycopy(orbit, 0, tmp, 0, orbit.length);
+                orbit = tmp; 
+            }
+
+            orbit[orbitPoints][0] = position[0];
+            orbit[orbitPoints][1] = position[1];
+            orbitPoints++;
+
+            if (debug) {
+                System.out.println("Updating orbit of " + name);
+                System.out.println("   Dist " + distance);
+                System.out.println("   u " + u[0] + " " + u[1]);
+                System.out.println("   vel " + velocity[0] + " " + velocity[1]);
+                System.out.println("   pos " + position[0] + " " + position[1]);
+            }
         }
     }
+    public void chibakuTensei() {
+        hasCollided = true;
+    }
+    
 }
 
