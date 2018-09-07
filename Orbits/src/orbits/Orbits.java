@@ -33,7 +33,7 @@ public class Orbits implements KeyListener,
     
     boolean debug = false;
     boolean paused = false;
-    int timer = 10;
+    int timer = 100;
     
     boolean showOrbits = false;
     
@@ -56,6 +56,7 @@ public class Orbits implements KeyListener,
         frame.setResizable(true);
         frame.setVisible(true);
         initPlanets();
+        paused = true;
         start();
     }
     
@@ -106,8 +107,9 @@ public class Orbits implements KeyListener,
     private void start() {
         System.out.println("start()");
         System.out.println(panel.getWidth() + " " + panel.getHeight());
+        long t0, proc_time;
         while (true) {
-            
+            t0 = System.nanoTime();
             if (!paused) {
                 // First update the speed of all planets
                 for(Planet p: planets)
@@ -117,8 +119,9 @@ public class Orbits implements KeyListener,
                     p.updateOrbit();
             }
             panel.repaint();
+            proc_time = (int)((System.nanoTime() - t0) / 1e6);
             try {
-                Thread.sleep(timer);
+                Thread.sleep(timer - Math.min(timer, proc_time));
             } catch (InterruptedException ex) {
                 System.out.println("OW NO! WHAT NOW??");
             }

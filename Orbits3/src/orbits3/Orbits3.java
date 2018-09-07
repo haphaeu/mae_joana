@@ -11,6 +11,7 @@ package orbits3;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.Ellipse2D;
 import static java.lang.Math.abs;
 import static java.lang.Math.atan;
 import static java.lang.Math.pow;
@@ -80,15 +81,15 @@ public class Orbits3 implements KeyListener,
                                new double[] {0, 0},
                                Color.blue));
         
-            // Init all planets at north pole
-        newPlanetX = 0; 
-        newPlanetY = -6378.137e3;
+        // Init all planets at north pole
+        //newPlanetX = 0; 
+        //newPlanetY = (-6378.137e3 - 100000) / scale + shiftY;
  
     }
     private void addPlanet() {
         planets.add(new Planet1("nameless",
                                100, 
-                               50000,
+                               80000,
                                new double[] {velX, velY}, 
                                new double[] {newPlanetX, newPlanetY},
                                Color.red));
@@ -140,6 +141,8 @@ public class Orbits3 implements KeyListener,
                 if (!addingPlanetMode) {
                     System.out.println("A");
                     System.out.println("   adding planet");
+                    newPlanetX = (mouseX-shiftX)*scale;
+                    newPlanetY = (mouseY-shiftY)*scale;
                     newPlanetSpeedX = newPlanetX;
                     newPlanetSpeedY = newPlanetY;
                     addingPlanetMode = true;
@@ -292,7 +295,10 @@ public class Orbits3 implements KeyListener,
             
             gfx.fillRect(0, 0, w, h);
             gfx.setColor(Color.white);
-            gfx.drawString("Mouse " + mouseX + " " + mouseY, 10, 10);
+            double posX = (mouseX-shiftX)*scale/1e3;
+            double posY = (mouseY-shiftY)*scale/1e3;
+            double height = sqrt(pow(posX, 2) + pow(posY, 2)) - 6378.137;
+            gfx.drawString(String.format("X = %.0f km   Y = %.0f km   h = %.1f km", posX, posY, height), 10, 10);
             gfx.drawString(String.format("Scale %.1f", scale), 10, 25);
 
             for (Planet1 p: planets) {
@@ -334,6 +340,37 @@ public class Orbits3 implements KeyListener,
                     }
                 }
             }
+            
+            // FUNCIONA!!!!!!
+            // mas ta uma ZONAAA
+            // precisa fazer isso por planeta
+            
+            if (planets.size() > 1) {
+                // show estimated full orbit
+                Planet1 p1 = planets.get(1);
+                
+                Graphics2D gfx2d = (Graphics2D) gfx;
+                
+                // canto superior esquerdo da ellipse com a Terra em um foco:
+                // pX = a + c (a: semi-eixo maior, c: dist focal)
+                //      sendo c = e*a
+                // pY = b (semieixo menor)
+                int ox = (int)(-(p1.a*(1+p1.e))/scale) + shiftX;
+                int oy = (int)(-p1.b/scale) + shiftY;
+                
+                // o tamanho do retangulo eh de 2x os semi-eixos
+                int ow = (int)(2*p1.a/scale);
+                int oh = (int)(2*p1.b/scale);
+                Shape orbit = new Ellipse2D.Float(ox, oy, ow, oh);
+                
+                // alinha a elipse desenhada com o eixo da orbita, definido por argp
+                // e com centro da rotacao no centro da terra
+                gfx2d.rotate(Math.toRadians(p1.argp), shiftX, shiftY);
+                
+                gfx2d.setStroke(new BasicStroke(1));
+                gfx2d.setPaint(Color.GRAY);
+                gfx2d.draw(orbit);
+            }
         }
     }
 }
@@ -361,6 +398,9 @@ class Planet1 {
     int orbitPoints;
     Color color;
     
+    // Orbital elements
+    double e, a, b, p, argp;
+    
     double[] u = new double[2];
     double distance;
     
@@ -383,6 +423,72 @@ class Planet1 {
         System.out.println("   Mass " + mass);
         System.out.println("   Radius " + radius);
         System.out.println("   Speed " + velocity[0] + " " + velocity[1]);
+        
+        solveOrbit();
+    }
+    
+    private void solveOrbit() {
+        System.out.println("Orbital elements");
+        //https://space.stackexchange.com/questions/1904/how-to-programmatically-calculate-orbital-elements-using-position-velocity-vecto/1919#1919
+        
+        // this is G*M for the Earth
+        double mu = 3.98e14;  
+        
+        // k components of the angular momentum
+        // h = cross(r, v), but since r and v are in 2D, only the k component will be non-zero:
+        double hk = position[0] * velocity[1] - position[1] * velocity[0];
+        
+        // excentricity
+        // https://en.wikipedia.org/wiki/Eccentricity_vector
+        double v_sqr = pow(velocity[0], 2) + pow(velocity[1], 2);
+        double r_nrm = sqrt(pow(position[0], 2) + pow(position[1], 2));
+        double rv_dot = position[0] * velocity[0] + position[1] * velocity[1];
+        double e0 = ((v_sqr - mu / r_nrm) * position[0] - rv_dot * velocity[0]) / mu;
+        double e1 = ((v_sqr - mu / r_nrm) * position[1] - rv_dot * velocity[1]) / mu;
+        e = sqrt(pow(e0, 2) + pow(e1, 2));
+        
+        // Orbital specific mechanical energy
+        double energy = v_sqr / 2 - mu / r_nrm;
+        
+        // Semi-major axis a and semi-latus rectum p
+        //if 0 < e < 1:  # Ellipse
+        //    a = -mu/(2*energy)
+        //    p = a*(1-e**2)
+        //else:  # Parabola
+        //    p = np.linalg.norm(h)**2/mu
+        //    a = 9.9e99
+        if (e > 0.0 && e < 1.0) {
+            // Elliptic orbit
+            a = -mu / (2*energy);
+            b = a * sqrt(1.0 - pow(e, 2));
+            p = a * (1 - pow(e, 2));
+        } else {
+            // Need to sort this out properly
+            // e == 1 is a parabolic trajectory
+            // e > 1 is a hyperbolic trajectory
+            p = pow(hk, 2)/mu;
+            a = 9.9e99;
+            b = 9.9e99;
+        }
+        
+        //# Argument of periapsis
+        //https://en.wikipedia.org/wiki/Argument_of_periapsis#Calculation
+        argp = 180.0/Math.PI * Math.atan2(e1, e0);
+        if (hk < 0)
+            argp = 360.0 - argp;
+
+        
+        // True anomaly
+        double nu = 180.0/Math.PI * (Math.acos((e0*position[0] + e1*position[1]) / (e * r_nrm)));
+        if (rv_dot < 0.0)
+            nu = 360.0 - nu;
+        
+        System.out.println(String.format("   Excentricity %.3f", e));
+        System.out.println(String.format("   Semi major axis %.3f km", a/1e3));
+        System.out.println(String.format("   Semi latus rectum %.3f km", p/1e3));
+        System.out.println(String.format("   Periapsis %.1f def", argp));
+        System.out.println(String.format("   True anomaly %.1f deg ", nu));
+
     }
     
     public void updateVelocity(Planet1 p /*Earth*/) {
