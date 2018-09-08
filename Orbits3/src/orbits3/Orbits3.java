@@ -32,9 +32,12 @@ public class Orbits3 implements KeyListener,
     
     boolean debug = false;
     boolean paused = false;
-    int timer = 10;
+    int timer = 1;  // ms
+    int proc_time;  // ms, time required to process and repaint
+    double fps;
     
     boolean showOrbits = true;
+    boolean showCalculatedOrbits = true;
     boolean addingPlanetMode = false;
     
     double scale;
@@ -99,8 +102,9 @@ public class Orbits3 implements KeyListener,
     private void start() {
         System.out.println("start()");
         System.out.println(panel.getWidth() + " " + panel.getHeight());
+        long t0;
         while (true) {
-            
+            t0 = System.nanoTime();
             if (!paused) {
                 // First update the speed of all planets
                 planets.forEach((p) -> {
@@ -108,16 +112,19 @@ public class Orbits3 implements KeyListener,
                 });
                 // and then update their positions
                 planets.forEach((p) -> {
-                    p.updateOrbit();
+                    p.updatePosition();
                 });
                 checkCollisions();
             }
             panel.repaint();
+            proc_time = (int)((System.nanoTime() - t0) / 1e6);
             try {
-                Thread.sleep(timer);
+                Thread.sleep(timer - Math.min(timer, proc_time));
             } catch (InterruptedException ex) {
                 System.out.println("OW NO! WHAT NOW??");
             }
+            t0 = System.nanoTime() - t0;
+            fps = 1.0e9 / t0;
         }
     }
     private void checkCollisions() {
@@ -145,6 +152,7 @@ public class Orbits3 implements KeyListener,
                     newPlanetY = (mouseY-shiftY)*scale;
                     newPlanetSpeedX = newPlanetX;
                     newPlanetSpeedY = newPlanetY;
+                    addPlanet();
                     addingPlanetMode = true;
                     paused = true;
                 }
@@ -159,6 +167,12 @@ public class Orbits3 implements KeyListener,
                 System.out.println("O");
                 showOrbits = !showOrbits;
                 System.out.println("   showOrbit " + showOrbits);
+                panel.repaint();
+                break;
+            case KeyEvent.VK_I:
+                System.out.println("I");
+                showCalculatedOrbits = !showCalculatedOrbits;
+                System.out.println("   showCalculatedOrbits " + showCalculatedOrbits);
                 panel.repaint();
                 break;
             case KeyEvent.VK_E:
@@ -220,12 +234,13 @@ public class Orbits3 implements KeyListener,
                 velY = (newPlanetSpeedY - newPlanetY) / 1e3;
             else
                 velY = 0;
+            
+            planets.get(planets.size()-1).setVelocity(velX, velY);
         }
     }
    
     // MouseWheelInterface
     @Override public void mouseWheelMoved(MouseWheelEvent e) {
-        if (!addingPlanetMode) {
             int cX = (int)((mouseX-shiftX)*scale);
             int cY = (int)((mouseY-shiftY)*scale);
             
@@ -237,43 +252,33 @@ public class Orbits3 implements KeyListener,
             
             shiftX = mouseX - (int)(cX/scale);
             shiftY = mouseY - (int)(cY/scale);
-            System.out.println("Rescale " + scale);
-            System.out.println(" Shift " + shiftX + " " + shiftY);
-        }
+            if (debug) {
+                System.out.println("Rescale " + scale);
+                System.out.println(" Shift " + shiftX + " " + shiftY);
+            }
     }
 
-    // MouseListener
-    
     @Override public void mouseClicked(MouseEvent me) {
         if (addingPlanetMode){
             addingPlanetMode = false;
             paused = false;
-            addPlanet();
+            planets.get(planets.size()-1).setReady(true);
         }
     }
 
     int panX, panY;
-    boolean panMode = false;
     @Override public void mousePressed(MouseEvent me) {
-        if (!addingPlanetMode) {
-            panMode = true;
-            panX = me.getX();
-            panY = me.getY();
-        }
+        // get first point in case of pan
+        panX = me.getX();
+        panY = me.getY();
     }
     @Override public void mouseDragged(MouseEvent e) {
-        if (panMode) {
-            shiftX += e.getX() - panX;
-            shiftY += e.getY() - panY;
-            panX = e.getX();
-            panY = e.getY();
-        }
+        shiftX += e.getX() - panX;
+        shiftY += e.getY() - panY;
+        panX = e.getX();
+        panY = e.getY();
     }
-    @Override public void mouseReleased(MouseEvent me) {
-        if (panMode) {
-            panMode = false;
-        }
-    }
+    @Override public void mouseReleased(MouseEvent me) { }
 
     @Override public void mouseEntered(MouseEvent me) {}
 
@@ -299,7 +304,7 @@ public class Orbits3 implements KeyListener,
             double posY = (mouseY-shiftY)*scale/1e3;
             double height = sqrt(pow(posX, 2) + pow(posY, 2)) - 6378.137;
             gfx.drawString(String.format("X = %.0f km   Y = %.0f km   h = %.1f km", posX, posY, height), 10, 10);
-            gfx.drawString(String.format("Scale %.1f", scale), 10, 25);
+            gfx.drawString(String.format("Scale %.1f Time wrap %.0f fps %.0f", scale, fps*Planet1.dt, fps), 10, 25);
 
             for (Planet1 p: planets) {
                 if (debug) {
@@ -312,6 +317,16 @@ public class Orbits3 implements KeyListener,
                 int y = (int)((p.position[1]-p.radius)/scale + shiftY);
                 int r = (int)(p.radius/scale);
                 gfx.fillOval(x, y, 2*r, 2*r);
+                
+                int i = planets.indexOf(p);
+                if (i == 0) continue;
+                gfx.setColor(Color.GRAY);
+                if (p.height == 0.0 )
+                    gfx.drawString(String.format("Planet %2d: chibaku tensei!", 
+                        i), w-220, h-i*15);
+                else
+                    gfx.drawString(String.format("Planet %2d: v=%.1fkm/s h=%.0fkm", 
+                            i, p.velocity_mod/1e3, p.height/1e3), w-200, h-i*15);
             }
             
             if (addingPlanetMode) {
@@ -319,6 +334,9 @@ public class Orbits3 implements KeyListener,
                 gfx.drawString(String.format("Velocity vx=%.0f, vy=%.0f, v=%.0f, theta=%.1f",
                         velX, velY, sqrt(velX*velX+velY*velY), 57.2957795131*atan(-velY/velX)),
                         10, 40);
+                Planet1 p1 = planets.get(planets.size()-1);
+                gfx.drawString(String.format("Orbital elements: e=%.3f \t a=%.0fkm \t b=%.0fkm \t argp=%.0fdeg", 
+                        p1.e, p1.a/1e3, p1.b/1e3, p1.argp), 10, 55);
                 gfx.drawLine((int)(newPlanetX/scale)+shiftX,
                              (int)(newPlanetY/scale)+shiftY,
                              (int)(newPlanetSpeedX/scale)+shiftX,
@@ -341,35 +359,37 @@ public class Orbits3 implements KeyListener,
                 }
             }
             
-            // FUNCIONA!!!!!!
-            // mas ta uma ZONAAA
-            // precisa fazer isso por planeta
-            
-            if (planets.size() > 1) {
+            if (showCalculatedOrbits && (planets.size() > 1)) {
                 // show estimated full orbit
-                Planet1 p1 = planets.get(1);
-                
                 Graphics2D gfx2d = (Graphics2D) gfx;
-                
-                // canto superior esquerdo da ellipse com a Terra em um foco:
-                // pX = a + c (a: semi-eixo maior, c: dist focal)
-                //      sendo c = e*a
-                // pY = b (semieixo menor)
-                int ox = (int)(-(p1.a*(1+p1.e))/scale) + shiftX;
-                int oy = (int)(-p1.b/scale) + shiftY;
-                
-                // o tamanho do retangulo eh de 2x os semi-eixos
-                int ow = (int)(2*p1.a/scale);
-                int oh = (int)(2*p1.b/scale);
-                Shape orbit = new Ellipse2D.Float(ox, oy, ow, oh);
-                
-                // alinha a elipse desenhada com o eixo da orbita, definido por argp
-                // e com centro da rotacao no centro da terra
-                gfx2d.rotate(Math.toRadians(p1.argp), shiftX, shiftY);
-                
                 gfx2d.setStroke(new BasicStroke(1));
                 gfx2d.setPaint(Color.GRAY);
-                gfx2d.draw(orbit);
+                Planet1 p1;
+                for (int i=1; i < planets.size(); i++) {
+                    p1 = planets.get(i);
+                    
+                    // skip if orbit not elliptical
+                    if (p1.e >= 1.0)
+                        continue;
+                    
+                    // canto superior esquerdo da ellipse com a Terra em um foco:
+                    // pX = a + c (a: semi-eixo maior, c: dist focal)
+                    //      sendo c = e*a
+                    // pY = b (semieixo menor)
+                    int ox = (int)(-(p1.a*(1.0+p1.e))/scale) + shiftX;
+                    int oy = (int)(-p1.b/scale) + shiftY;
+
+                    // o tamanho do retangulo eh de 2x os semi-eixos
+                    int ow = (int)(2*p1.a/scale);
+                    int oh = (int)(2*p1.b/scale);
+                    Shape orbit = new Ellipse2D.Float(ox, oy, ow, oh);
+
+                    // alinha a elipse desenhada com o eixo da orbita, definido por argp
+                    // e com centro da rotacao no centro da terra
+                    gfx2d.rotate(Math.toRadians(p1.argp), shiftX, shiftY);
+                    gfx2d.draw(orbit);
+                    gfx2d.rotate(Math.toRadians(-p1.argp), shiftX, shiftY);
+                }
             }
         }
     }
@@ -383,16 +403,20 @@ public class Orbits3 implements KeyListener,
  */
 class Planet1 {
     static final double G = 6.674e-11;
-    //static final double G = 1.0e-3;
-    static double dt = 10;
+    
+    // Para resolver orbitas baixas ~ 100km, precisa de um dt ~ 10s.
+    // 
+    static double dt = 10.0; // s
     
     boolean debug = false;
+    private boolean isReady = false;
     private boolean hasCollided = false;
     
     String name;
     double mass, radius;
     double[] velocity = new double[2];
     double[] position = new double[2];
+    double velocity_mod, height;
     final int size = 5000;
     double[][] orbit;
     int orbitPoints;
@@ -424,15 +448,26 @@ class Planet1 {
         System.out.println("   Radius " + radius);
         System.out.println("   Speed " + velocity[0] + " " + velocity[1]);
         
+        //System.out.println("Orbital elements");
+        //System.out.println(" eccentricity \t semi major \t semi minor \t periapsis \t anomaly");
+        solveOrbit();
+    }
+    
+    public void setReady(boolean r) {
+        isReady = r;
+    }
+    
+    public void setVelocity(double vx, double vy) {
+        velocity[0] = vx;
+        velocity[1] = vy;
         solveOrbit();
     }
     
     private void solveOrbit() {
-        System.out.println("Orbital elements");
         //https://space.stackexchange.com/questions/1904/how-to-programmatically-calculate-orbital-elements-using-position-velocity-vecto/1919#1919
         
         // this is G*M for the Earth
-        double mu = 3.98e14;  
+        double mu = 3.986e14;  
         
         // k components of the angular momentum
         // h = cross(r, v), but since r and v are in 2D, only the k component will be non-zero:
@@ -474,8 +509,8 @@ class Planet1 {
         //# Argument of periapsis
         //https://en.wikipedia.org/wiki/Argument_of_periapsis#Calculation
         argp = 180.0/Math.PI * Math.atan2(e1, e0);
-        if (hk < 0)
-            argp = 360.0 - argp;
+        //if (hk < 0)
+        //    argp = 360.0 - argp;
 
         
         // True anomaly
@@ -483,39 +518,42 @@ class Planet1 {
         if (rv_dot < 0.0)
             nu = 360.0 - nu;
         
+        /*
         System.out.println(String.format("   Excentricity %.3f", e));
         System.out.println(String.format("   Semi major axis %.3f km", a/1e3));
         System.out.println(String.format("   Semi latus rectum %.3f km", p/1e3));
         System.out.println(String.format("   Periapsis %.1f def", argp));
         System.out.println(String.format("   True anomaly %.1f deg ", nu));
-
+        */
+        //System.out.println(String.format(" %12.5f \t %10.1f \t %10.1f \t %9.1f \t %7.1f \t", e, a/1e3, b/1e3, argp, nu));
     }
     
     public void updateVelocity(Planet1 p /*Earth*/) {
-        if (!hasCollided) {
-            double a;
+        if (!hasCollided && isReady) {
+            double acc;
             if (p != this) {
                 if (debug)
                     System.out.println("   with " + p.name);
 
                 distance = sqrt(pow(position[0] - p.position[0], 2) + 
                                    pow(position[1] - p.position[1], 2));
-
+                height = distance - 6378.137e3;
                 // Unit vector pointing towards the other planet
                 u[0] = -(position[0] - p.position[0]) / distance;
                 u[1] = -(position[1] - p.position[1]) / distance;
 
                 // Classic Newton mechanic:
                 // F = m1.a = G.m1.m2.a/r² ==> a = G.m2/r²
-                a = G * p.mass / pow(distance, 2);
+                acc = G * p.mass / pow(distance, 2);
 
-                velocity[0] += a*u[0]*dt;
-                velocity[1] += a*u[1]*dt;
+                velocity[0] += acc*u[0]*dt;
+                velocity[1] += acc*u[1]*dt;
+                velocity_mod = sqrt(pow(velocity[0], 2) + pow(velocity[1], 2));
             }
         }
     }
-    public void updateOrbit() {
-        if (!hasCollided) {
+    public void updatePosition() {
+        if (!hasCollided && isReady) {
             position[0] += velocity[0]*dt; 
             position[1] += velocity[1]*dt;
 
@@ -542,6 +580,10 @@ class Planet1 {
     }
     public void chibakuTensei() {
         hasCollided = true;
+        velocity[0] = 0.0;
+        velocity[1] = 0.0;
+        velocity_mod = 0.0;
+        height = 0.0;
     }
     
 }
